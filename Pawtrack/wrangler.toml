@@ -1,0 +1,4 @@
+name = "pawtrack-2"
+pages_build_output_dir = "."
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pawtrack 2.0</title>
+    <link rel="stylesheet" href="/CSS/estilos.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+    <!-- PANTALLA INICIAL: SOLO LOGIN / REGISTRO -->
+    <div id="auth-container" class="auth-wrapper">
+        <div class="auth-card">
+            <h1 class="auth-title">🐾 Paw<span>track</span> 2.0</h1>
+
+            <div class="auth-tabs">
+                <button id="tab-login" class="tab-btn active" type="button" onclick="switchTab('login')">Iniciar Sesión</button>
+                <button id="tab-register" class="tab-btn" type="button" onclick="switchTab('register')">Registrarse</button>
+            </div>
+
+            <form id="form-login" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <input type="email" id="login-correo" placeholder="Correo Electrónico" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="login-password" placeholder="Contraseña" required>
+                </div>
+                <button type="submit" class="btn-primary-gradient">Entrar al Sistema</button>
+            </form>
+
+            <form id="form-register" class="hidden" onsubmit="handleRegister(event)">
+                <div class="input-group">
+                    <input type="text" id="reg-nombre" placeholder="Nombre Completo" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="reg-correo" placeholder="Correo Electrónico" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="reg-password" placeholder="Contraseña" required>
+                </div>
+                <button type="submit" class="btn-primary-gradient">Crear Cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PANEL PRINCIPAL: OCULTO HASTA INICIAR SESIÓN -->
+    <div id="dashboard-container" class="hidden">
+        <header class="topbar">
+            <div class="brand-header">🐾 Paw<span>track</span> 2.0 <span>| Panel de Control</span></div>
+            <div class="user-actions">
+                <span id="user-display-name">👤 Usuario</span>
+                <button class="btn-logout" type="button" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- Columna izquierda: Registro de Mascotas -->
+            <section class="card">
+                <div class="card-header">
+                    <h2>🐶 Registro de Mascotas</h2>
+                    <button class="btn-add-dog" type="button" onclick="openAddDogModal()">+ Registrar Perro</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Raza</th>
+                                <th>Edad</th>
+                                <th>Peso</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dogs-table-body">
+                            <tr><td colspan="6" class="text-center">Cargando mascotas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Columna central: Telemetría y Mapa en Vivo -->
+            <section class="card">
+                <h2 id="telemetry-title">📡 Telemetría y Ubicación en Vivo</h2>
+
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <span class="metric-label">Temperatura</span>
+                        <strong id="val-temp" class="metric-value cyan">--</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Pulso Cardíaco</span>
+                        <strong id="val-pulso" class="metric-value cyan">--</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Actividad</span>
+                        <strong id="val-actividad" class="metric-value green">Sin datos</strong>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Batería GPS</span>
+                        <strong id="val-bateria" class="metric-value green">100.00%</strong>
+                    </div>
+                </div>
+
+                <div class="map-header">
+                    <span>📍 Mapa en Tiempo Real</span>
+                    <span id="coords-display" class="coords-badge">Lat: 0.0000 | Lon: 0.0000</span>
+                </div>
+                <div id="map"></div>
+            </section>
+
+            <!-- Columna derecha: Alertas y Tabla de Registros -->
+            <div class="right-column">
+                <section class="card">
+                    <h2>🚨 Alertas del Sistema</h2>
+                    <div id="alerts-list">
+                        <p class="muted-text">✅ No hay alertas activas para esta mascota.</p>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <h2>📋 Tabla de Registros del Perro</h2>
+                    <div class="table-responsive">
+                        <table class="data-table compact">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Temp</th>
+                                    <th>Pulso</th>
+                                    <th>Actividad</th>
+                                </tr>
+                            </thead>
+                            <tbody id="records-table-body">
+                                <tr><td colspan="4" class="text-center">Sin mediciones registradas aún</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL PARA REGISTRAR MASCOTA -->
+    <div id="dog-modal" class="modal-backdrop hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🐶 Registrar Mascota</h3>
+                <button type="button" class="btn-close-modal" onclick="closeAddDogModal()">✕</button>
+            </div>
+            <form id="form-add-dog" onsubmit="handleCreateDog(event)">
+                <div class="input-group">
+                    <input type="text" id="dog-nombre" placeholder="Nombre del perro" required>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="dog-raza" placeholder="Raza (ej. Labrador, Mestizo)">
+                </div>
+                <div class="modal-row">
+                    <div class="input-group">
+                        <input type="number" id="dog-edad" placeholder="Edad (años)" min="0" step="1">
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="dog-peso" placeholder="Peso (kg)" min="0" step="0.1">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="dog-codigo" placeholder="Código de collar (opcional, ej. PT-001)">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary-dark" onclick="closeAddDogModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary-gradient compact-btn">Guardar Mascota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/JAVASCRIPT/app.js"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyClin4psaNVlZ--Set35wAAKq7cnykDQcA&callback=initMap"></script>
+</body>
+</html>
