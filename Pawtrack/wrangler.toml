@@ -1,4 +1,7 @@
-name = "pawtrack-2"
-pages_build_output_dir = "."
+name = "perro"
+main = "server.js"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "."
