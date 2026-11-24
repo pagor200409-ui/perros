@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
-    <!-- PANTALLA INICIAL: SOLO LOGIN / REGISTRO -->
     <div id="auth-container" class="auth-wrapper">
         <div class="auth-card">
             <h1 class="auth-title">🐾 Paw<span>track</span> 2.0</h1>
@@ -43,7 +42,6 @@
         </div>
     </div>
 
-    <!-- PANEL PRINCIPAL: OCULTO HASTA INICIAR SESIÓN -->
     <div id="dashboard-container" class="hidden">
         <header class="topbar">
             <div class="brand-header">🐾 Paw<span>track</span> 2.0 <span>| Panel de Control</span></div>
@@ -54,7 +52,6 @@
         </header>
 
         <main class="dashboard-grid">
-            <!-- Columna izquierda: Registro de Mascotas -->
             <section class="card">
                 <div class="card-header">
                     <h2>🐶 Registro de Mascotas</h2>
@@ -79,7 +76,6 @@
                 </div>
             </section>
 
-            <!-- Columna central: Telemetría y Mapa en Vivo -->
             <section class="card">
                 <h2 id="telemetry-title">📡 Telemetría y Ubicación en Vivo</h2>
 
@@ -109,7 +105,6 @@
                 <div id="map"></div>
             </section>
 
-            <!-- Columna derecha: Alertas y Tabla de Registros -->
             <div class="right-column">
                 <section class="card">
                     <h2>🚨 Alertas del Sistema</h2>
@@ -140,7 +135,6 @@
         </main>
     </div>
 
-    <!-- MODAL PARA REGISTRAR MASCOTA -->
     <div id="dog-modal" class="modal-backdrop hidden">
         <div class="modal-card">
             <div class="modal-header">
