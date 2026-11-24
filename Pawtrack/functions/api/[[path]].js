@@ -3,7 +3,7 @@ import { Pool } from '@neondatabase/serverless';
 function getPool(env) {
   const connectionString = env.DATABASE_URL || env.NEON_DATABASE_URL;
   if (!connectionString) {
-    throw new Error('Falta configurar DATABASE_URL en las variables de entorno de Cloudflare');
+    throw new Error('Falta configurar DATABASE_URL en Cloudflare');
   }
   return new Pool({ connectionString });
 }
@@ -28,8 +28,7 @@ function getRouteParts(request, params) {
     return params.path.split('/').filter(Boolean);
   }
   const url = new URL(request.url);
-  const clean = url.pathname.replace(/^\/api\/?/, '');
-  return clean.split('/').filter(Boolean);
+  return url.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean);
 }
 
 export async function onRequest(context) {
@@ -58,13 +57,13 @@ export async function onRequest(context) {
       const pass = body?.contrasena ?? body?.contraseña ?? '';
 
       if (!nombre || !correo || !pass) {
-        return jsonResponse({ success: false, message: 'Faltan campos obligatorios' }, 400);
+        return jsonResponse({ success: false, message: 'Completa nombre, correo y contraseña' }, 400);
       }
 
       pool = getPool(env);
       const existe = await pool.query('SELECT id FROM usuarios WHERE LOWER(correo) = $1 LIMIT 1', [correo]);
       if (existe.rows.length > 0) {
-        return jsonResponse({ success: false, message: 'El correo ya está registrado' }, 409);
+        return jsonResponse({ success: false, message: 'Ese correo ya está registrado' }, 409);
       }
 
       const result = await pool.query(
@@ -104,8 +103,7 @@ export async function onRequest(context) {
     if (parts[0] === 'perros') {
       if (request.method === 'GET' && parts[1]) {
         const usuarioId = Number(parts[1]);
-        if (!usuarioId) return jsonResponse({ error: 'ID de usuario inválido' }, 400);
-
+        if (!usuarioId) return jsonResponse([], 200);
         pool = getPool(env);
         const result = await pool.query(
           'SELECT id, usuario_id, nombre, raza, edad, peso, fecha_registro FROM perros WHERE usuario_id = $1 ORDER BY id ASC',
@@ -119,12 +117,12 @@ export async function onRequest(context) {
         const usuario_id = Number(body?.usuario_id);
         const nombre = (body?.nombre || '').trim();
         const raza = (body?.raza || 'Mestizo').trim();
-        const edad = body?.edad !== undefined && body?.edad !== null && body?.edad !== '' ? Number(body.edad) : null;
-        const peso = body?.peso !== undefined && body?.peso !== null && body?.peso !== '' ? Number(body.peso) : null;
+        const edad = body?.edad !== '' && body?.edad !== undefined && body?.edad !== null ? Number(body.edad) : null;
+        const peso = body?.peso !== '' && body?.peso !== undefined && body?.peso !== null ? Number(body.peso) : null;
         const codigoDispositivo = (body?.codigo_dispositivo || '').trim();
 
         if (!usuario_id || !nombre) {
-          return jsonResponse({ success: false, message: 'Faltan usuario_id o nombre de la mascota' }, 400);
+          return jsonResponse({ success: false, message: 'Faltan datos de la mascota' }, 400);
         }
 
         pool = getPool(env);
@@ -148,136 +146,32 @@ export async function onRequest(context) {
       }
     }
 
-    // GET /api/dispositivo/:perroId y POST /api/dispositivo/datos
-    if (parts[0] === 'dispositivo') {
-      if (request.method === 'GET' && parts[1]) {
-        const perroId = Number(parts[1]);
-        if (!perroId) return jsonResponse({ error: 'ID de mascota inválido' }, 400);
-
-        pool = getPool(env);
-        const result = await pool.query(
-          'SELECT id, codigo, perro_id, bateria, conexion_definitiva, ultima_conexion FROM dispositivos WHERE perro_id = $1 ORDER BY id DESC LIMIT 1',
-          [perroId]
-        );
-        return jsonResponse(result.rows[0] || {});
-      }
-
-      if (request.method === 'POST' && parts[1] === 'datos') {
-        const expectedKey = env.DEVICE_API_KEY;
-        const providedKey = request.headers.get('X-Device-Key');
-        if (expectedKey && providedKey !== expectedKey) {
-          return jsonResponse({ success: false, message: 'Clave de dispositivo no autorizada' }, 401);
-        }
-
-        const body = await request.json();
-        const codigo = (body?.codigo || body?.codigo_dispositivo || '').trim();
-        if (!codigo) {
-          return jsonResponse({ success: false, message: 'Falta el código del dispositivo' }, 400);
-        }
-
-        const bateria = body?.bateria ?? null;
-        const latitud = body?.gps?.latitud ?? body?.latitud ?? null;
-        const longitud = body?.gps?.longitud ?? body?.longitud ?? null;
-        const temperatura = body?.sensores?.temperatura ?? body?.temperatura ?? null;
-        const pulso = body?.sensores?.pulso ?? body?.pulso ?? null;
-        const actividad = body?.sensores?.actividad ?? body?.actividad ?? 'Normal';
-
-        pool = getPool(env);
-        const dispRes = await pool.query('SELECT id, perro_id FROM dispositivos WHERE codigo = $1 LIMIT 1', [codigo]);
-        if (dispRes.rows.length === 0) {
-          return jsonResponse({ success: false, message: 'Dispositivo no registrado en Neon' }, 404);
-        }
-
-        const { id: dispositivo_id, perro_id } = dispRes.rows[0];
-
-        if (bateria !== null && bateria !== undefined) {
-          await pool.query(
-            'UPDATE dispositivos SET bateria = $1, conexion_definitiva = TRUE, ultima_conexion = NOW() WHERE id = $2',
-            [Number(bateria), dispositivo_id]
-          );
-        } else {
-          await pool.query(
-            'UPDATE dispositivos SET conexion_definitiva = TRUE, ultima_conexion = NOW() WHERE id = $1',
-            [dispositivo_id]
-          );
-        }
-
-        if (temperatura !== null || pulso !== null) {
-          await pool.query(
-            'INSERT INTO mediciones (dispositivo_id, temperatura, pulso, actividad) VALUES ($1, $2, $3, $4)',
-            [
-              dispositivo_id,
-              temperatura !== null ? Number(temperatura) : null,
-              pulso !== null ? Number(pulso) : null,
-              actividad
-            ]
-          );
-
-          if (perro_id && temperatura !== null && Number(temperatura) > 39.5) {
-            await pool.query(
-              'INSERT INTO alertas (perro_id, tipo, descripcion) VALUES ($1, $2, $3)',
-              [perro_id, 'Temperatura Alta', `Temperatura detectada de ${temperatura} °C en ${codigo}`]
-            );
-          }
-        }
-
-        if (latitud !== null && longitud !== null) {
-          await pool.query(
-            'INSERT INTO ubicaciones (dispositivo_id, latitud, longitud) VALUES ($1, $2, $3)',
-            [dispositivo_id, Number(latitud), Number(longitud)]
-          );
-        }
-
-        return jsonResponse({ success: true, message: 'Datos sincronizados con Neon' });
-      }
-    }
-
-    // POST /api/telemetria
-    if (parts[0] === 'telemetria' && request.method === 'POST') {
-      const body = await request.json();
-      const codigo = (body?.codigo || body?.codigo_dispositivo || '').trim();
-      if (!codigo) return jsonResponse({ success: false, message: 'Falta código de dispositivo' }, 400);
-
+    // GET /api/dispositivo/:perroId
+    if (parts[0] === 'dispositivo' && request.method === 'GET' && parts[1]) {
+      const perroId = Number(parts[1]);
+      if (!perroId) return jsonResponse({});
       pool = getPool(env);
-      const dispRes = await pool.query('SELECT id, perro_id FROM dispositivos WHERE codigo = $1 LIMIT 1', [codigo]);
-      if (dispRes.rows.length === 0) return jsonResponse({ success: false, message: 'Dispositivo no encontrado' }, 404);
-      const { id: dispositivo_id, perro_id } = dispRes.rows[0];
-
-      if (body.temperatura !== undefined || body.pulso !== undefined) {
-        await pool.query(
-          'INSERT INTO mediciones (dispositivo_id, temperatura, pulso, actividad) VALUES ($1, $2, $3, $4)',
-          [dispositivo_id, body.temperatura ?? null, body.pulso ?? null, body.actividad || 'Normal']
-        );
-        if (perro_id && body.temperatura !== undefined && Number(body.temperatura) > 39.5) {
-          await pool.query(
-            'INSERT INTO alertas (perro_id, tipo, descripcion) VALUES ($1, $2, $3)',
-            [perro_id, 'Temperatura Alta', `Temperatura detectada de ${body.temperatura} °C en ${codigo}`]
-          );
-        }
-      }
-      if (body.latitud !== undefined && body.longitud !== undefined) {
-        await pool.query(
-          'INSERT INTO ubicaciones (dispositivo_id, latitud, longitud) VALUES ($1, $2, $3)',
-          [dispositivo_id, Number(body.latitud), Number(body.longitud)]
-        );
-      }
-      return jsonResponse({ success: true, message: 'Telemetría registrada' });
+      const result = await pool.query(
+        'SELECT id, codigo, perro_id, bateria, conexion_definitiva, ultima_conexion FROM dispositivos WHERE perro_id = $1 ORDER BY id DESC LIMIT 1',
+        [perroId]
+      );
+      return jsonResponse(result.rows[0] || {});
     }
 
-    // GET /api/historial-mediciones/:dispositivoId
-    if (parts[0] === 'historial-mediciones' && request.method === 'GET') {
+    // GET /api/historial-mediciones/:dispositivoId (consulta la tabla "medir" de Neon)
+    if (parts[0] === 'historial-mediciones' && request.method === 'GET' && parts[1]) {
       const dispositivoId = Number(parts[1]);
       if (!dispositivoId) return jsonResponse([]);
       pool = getPool(env);
       const result = await pool.query(
-        'SELECT id, dispositivo_id, temperatura, pulso, actividad, fecha_hora FROM mediciones WHERE dispositivo_id = $1 ORDER BY fecha_hora DESC LIMIT 20',
+        'SELECT id, dispositivo_id, temperatura, pulso, actividad, fecha_hora FROM medir WHERE dispositivo_id = $1 ORDER BY fecha_hora DESC LIMIT 20',
         [dispositivoId]
       );
       return jsonResponse(result.rows);
     }
 
     // GET /api/ubicacion/:dispositivoId
-    if (parts[0] === 'ubicacion' && request.method === 'GET') {
+    if (parts[0] === 'ubicacion' && request.method === 'GET' && parts[1]) {
       const dispositivoId = Number(parts[1]);
       if (!dispositivoId) return jsonResponse({});
       pool = getPool(env);
@@ -289,7 +183,7 @@ export async function onRequest(context) {
     }
 
     // GET /api/alertas/:perroId
-    if (parts[0] === 'alertas' && request.method === 'GET') {
+    if (parts[0] === 'alertas' && request.method === 'GET' && parts[1]) {
       const perroId = Number(parts[1]);
       if (!perroId) return jsonResponse([]);
       pool = getPool(env);
@@ -300,10 +194,10 @@ export async function onRequest(context) {
       return jsonResponse(result.rows);
     }
 
-    return jsonResponse({ success: false, message: 'Ruta de API no encontrada' }, 404);
+    return jsonResponse({ success: false, message: 'Ruta no encontrada' }, 404);
   } catch (err) {
-    console.error('Error en /api/*:', err);
-    return jsonResponse({ success: false, message: err?.message || 'Error interno del servidor' }, 500);
+    console.error('Error en API:', err);
+    return jsonResponse({ success: false, message: err?.message || 'Error en servidor/base de datos' }, 500);
   } finally {
     if (pool) {
       await pool.end().catch(() => {});
