@@ -1,7 +1,8 @@
 name = "perro"
-pages_build_output_dir = "."
+main = "worker.js"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "."
+binding = "ASSETS"
