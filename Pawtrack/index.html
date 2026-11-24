@@ -4,8 +4,403 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pawtrack 2.0</title>
-    <link rel="stylesheet" href="/CSS/estilos.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #070c16;
+            color: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: radial-gradient(circle at top, #0f1d36 0%, #070c16 70%);
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            background: #0c1424;
+            border: 1px solid rgba(56, 189, 248, 0.14);
+            border-radius: 18px;
+            padding: 36px 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+        }
+
+        .auth-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .auth-title span {
+            color: #00f0ff;
+        }
+
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: #070d19;
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 22px;
+        }
+
+        .tab-btn {
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            padding: 10px 12px;
+            border-radius: 9px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: #00e5ff;
+            color: #041018;
+        }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: #091120;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #f8fafc;
+            font-size: 0.98rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-group input:focus {
+            border-color: #00e5ff;
+        }
+
+        .input-group input::placeholder {
+            color: #64748b;
+        }
+
+        .btn-primary-gradient {
+            width: 100%;
+            margin-top: 8px;
+            padding: 14px 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #041018;
+            background: linear-gradient(90deg, #00e5ff 0%, #00ff9d 100%);
+            cursor: pointer;
+            transition: transform 0.15s ease, opacity 0.2s ease;
+        }
+
+        .btn-primary-gradient:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary-gradient.compact-btn {
+            margin-top: 0;
+            width: auto;
+            padding: 10px 16px;
+            font-size: 0.92rem;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            background: #0c1424;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            margin: 14px 18px 0;
+            border-radius: 14px;
+        }
+
+        .brand-header {
+            font-size: 1.15rem;
+            font-weight: 800;
+        }
+
+        .brand-header span {
+            color: #00e5ff;
+            font-weight: 600;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: #cbd5e1;
+        }
+
+        .btn-logout {
+            background: rgba(239, 68, 68, 0.16);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.05fr 1.45fr 0.95fr;
+            gap: 18px;
+            padding: 18px;
+            align-items: start;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .card {
+            background: #0c1424;
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 16px;
+            padding: 18px;
+        }
+
+        .card h2 {
+            font-size: 1.05rem;
+            color: #38bdf8;
+            margin-bottom: 14px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .card-header h2 {
+            margin-bottom: 0;
+        }
+
+        .btn-add-dog {
+            background: #10b981;
+            color: #04150e;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            color: #38bdf8;
+            padding: 10px 8px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .data-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.7);
+            color: #e2e8f0;
+        }
+
+        .selected-row {
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .btn-rastrear {
+            background: #00d8ff;
+            color: #041018;
+            border: none;
+            border-radius: 7px;
+            padding: 6px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .metric-box {
+            background: #080f1c;
+            border: 1px solid #172338;
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        .metric-label {
+            display: block;
+            font-size: 0.76rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            font-size: 1rem;
+            font-weight: 800;
+        }
+
+        .metric-value.cyan {
+            color: #00e5ff;
+        }
+
+        .metric-value.green {
+            color: #10b981;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 8px;
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .coords-badge {
+            background: rgba(0, 229, 255, 0.12);
+            color: #00e5ff;
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        #map {
+            width: 100%;
+            height: 310px;
+            border-radius: 12px;
+            border: 1px solid #00e5ff;
+            overflow: hidden;
+        }
+
+        .muted-text {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 14, 0.78);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 999;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 420px;
+            background: #0c1424;
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-header h3 {
+            color: #38bdf8;
+            font-size: 1.08rem;
+        }
+
+        .btn-close-modal {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.15rem;
+            cursor: pointer;
+        }
+
+        .modal-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-secondary-dark {
+            background: #131f36;
+            color: #cbd5e1;
+            border: 1px solid #263654;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="auth-container" class="auth-wrapper">
@@ -168,7 +563,406 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/JAVASCRIPT/app.js"></script>
+    <script>
+        const API_URL = '/api';
+
+        let currentUser = JSON.parse(localStorage.getItem('pawtrack_user')) || null;
+        let selectedDogId = null;
+        let selectedDogName = 'Mascota';
+        let map = null;
+        let marker = null;
+        let infoWindow = null;
+        let leafletMap = null;
+        let leafletMarker = null;
+        let mapReady = false;
+        let pendingLocation = null;
+        let trackingInterval = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (currentUser) {
+                showDashboard();
+            } else {
+                initMap();
+            }
+        });
+
+        function switchTab(tab) {
+            document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+            document.getElementById('form-register').classList.toggle('hidden', tab === 'login');
+            document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+            document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+        }
+
+        async function parseJsonSafe(res) {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch {
+                return { success: false, message: text || `Error HTTP ${res.status}` };
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const correo = document.getElementById('login-correo').value.trim();
+            const contraseña = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo, contraseña, contrasena: contraseña })
+                });
+                const data = await parseJsonSafe(res);
+
+                if (res.ok && data.success) {
+                    currentUser = data.usuario;
+                    localStorage.setItem('pawtrack_user', JSON.stringify(currentUser));
+                    showDashboard();
+                } else {
+                    alert(data.message || 'Credenciales incorrectas');
+                }
+            } catch (err) {
+                console.error('Error en handleLogin:', err);
+                alert('Error de conexión con el servidor');
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('reg-nombre').value.trim();
+            const correo = document.getElementById('reg-correo').value.trim();
+            const contraseña = document.getElementById('reg-password').value;
+
+            try {
+                const res = await fetch(`${API_URL}/registro`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, correo, contraseña, contrasena: contraseña })
+                });
+                const data = await parseJsonSafe(res);
+
+                if (res.ok && data.success) {
+                    alert('Cuenta creada. Ahora puedes iniciar sesión.');
+                    document.getElementById('login-correo').value = correo;
+                    switchTab('login');
+                } else {
+                    alert(data.message || 'No se pudo completar el registro');
+                }
+            } catch (err) {
+                console.error('Error en handleRegister:', err);
+                alert('Error al conectar con el servidor');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('dashboard-container').classList.remove('hidden');
+            document.getElementById('user-display-name').innerText = `👤 ${currentUser.nombre}`;
+            initMap();
+            loadDogs();
+        }
+
+        function logout() {
+            if (trackingInterval) {
+                clearInterval(trackingInterval);
+                trackingInterval = null;
+            }
+            localStorage.removeItem('pawtrack_user');
+            window.location.reload();
+        }
+
+        function initLeafletFallback(mapElement, centroInicial) {
+            if (typeof L === 'undefined') return;
+            if (!leafletMap) {
+                leafletMap = L.map(mapElement).setView([centroInicial.lat, centroInicial.lng], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(leafletMap);
+            } else {
+                setTimeout(() => leafletMap.invalidateSize(), 150);
+            }
+            mapReady = true;
+            if (pendingLocation) {
+                updateGoogleMarker(pendingLocation.lat, pendingLocation.lon, pendingLocation.dogName);
+            }
+        }
+
+        function initMap() {
+            const mapElement = document.getElementById('map');
+            if (!mapElement) return;
+
+            const centroInicial = { lat: 17.7547, lng: -92.5658 };
+
+            if (typeof google === 'undefined' || !google.maps) {
+                initLeafletFallback(mapElement, centroInicial);
+                return;
+            }
+
+            if (map) {
+                mapReady = true;
+                if (pendingLocation) {
+                    updateGoogleMarker(pendingLocation.lat, pendingLocation.lon, pendingLocation.dogName);
+                }
+                return;
+            }
+
+            map = new google.maps.Map(mapElement, {
+                center: centroInicial,
+                zoom: 14,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true,
+                styles: [
+                    { elementType: 'geometry', stylers: [{ color: '#1d2c4d' }] },
+                    { elementType: 'labels.text.fill', stylers: [{ color: '#8ec3b9' }] },
+                    { elementType: 'labels.text.stroke', stylers: [{ color: '#1a3646' }] },
+                    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#304a7d' }] },
+                    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] }
+                ]
+            });
+
+            infoWindow = new google.maps.InfoWindow();
+            mapReady = true;
+
+            if (pendingLocation) {
+                updateGoogleMarker(pendingLocation.lat, pendingLocation.lon, pendingLocation.dogName);
+            }
+        }
+
+        function updateGoogleMarker(lat, lon, dogName) {
+            pendingLocation = { lat, lon, dogName };
+            if (!mapReady) return;
+
+            const latNum = parseFloat(lat);
+            const lonNum = parseFloat(lon);
+            if (Number.isNaN(latNum) || Number.isNaN(lonNum)) return;
+
+            if (map && typeof google !== 'undefined' && google.maps) {
+                const posicion = { lat: latNum, lng: lonNum };
+                if (marker) {
+                    marker.setPosition(posicion);
+                    marker.setTitle(`Ubicación de ${dogName}`);
+                } else {
+                    marker = new google.maps.Marker({
+                        position: posicion,
+                        map: map,
+                        title: `Ubicación de ${dogName}`
+                    });
+                    marker.addListener('click', () => {
+                        infoWindow.setContent(`<strong>🐾 Ubicación de ${selectedDogName}</strong>`);
+                        infoWindow.open(map, marker);
+                    });
+                }
+                map.panTo(posicion);
+                return;
+            }
+
+            if (leafletMap && typeof L !== 'undefined') {
+                if (!leafletMarker) {
+                    leafletMarker = L.marker([latNum, lonNum]).addTo(leafletMap).bindPopup(`🐾 ${dogName}`);
+                } else {
+                    leafletMarker.setLatLng([latNum, lonNum]).setPopupContent(`🐾 ${dogName}`);
+                }
+                leafletMap.setView([latNum, lonNum], 15);
+            }
+        }
+
+        async function loadDogs() {
+            try {
+                const res = await fetch(`${API_URL}/perros/${currentUser.id}`);
+                const dogs = await parseJsonSafe(res);
+                const tbody = document.getElementById('dogs-table-body');
+                tbody.innerHTML = '';
+
+                if (!Array.isArray(dogs) || dogs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay mascotas registradas.</td></tr>';
+                    return;
+                }
+
+                dogs.forEach((dog, idx) => {
+                    if (idx === 0 && !selectedDogId) {
+                        selectedDogId = dog.id;
+                        selectedDogName = dog.nombre;
+                    }
+
+                    const tr = document.createElement('tr');
+                    if (dog.id === selectedDogId) tr.classList.add('selected-row');
+
+                    tr.innerHTML = `
+                        <td>#${dog.id}</td>
+                        <td><strong>${dog.nombre}</strong></td>
+                        <td>${dog.raza || '-'}</td>
+                        <td>${dog.edad ? dog.edad + ' años' : '-'}</td>
+                        <td>${dog.peso ? dog.peso + ' kg' : '-'}</td>
+                        <td><button class="btn-rastrear" type="button" onclick="selectDog(${dog.id}, '${dog.nombre.replace(/'/g, "\\'")}')">Rastrear</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                const activeDog = dogs.find(d => d.id === selectedDogId) || dogs[0];
+                if (activeDog) selectDog(activeDog.id, activeDog.nombre, false);
+            } catch (err) {
+                console.error('Error en loadDogs:', err);
+            }
+        }
+
+        function selectDog(dogId, dogName, reloadTable = true) {
+            selectedDogId = dogId;
+            selectedDogName = dogName;
+            document.getElementById('telemetry-title').innerText = `📡 Telemetría y Ubicación en Vivo (${dogName})`;
+            if (reloadTable) loadDogs();
+
+            if (trackingInterval) clearInterval(trackingInterval);
+            fetchDogLiveData(dogId, dogName);
+            trackingInterval = setInterval(() => {
+                fetchDogLiveData(dogId, dogName);
+            }, 5000);
+        }
+
+        async function fetchDogLiveData(dogId, dogName) {
+            try {
+                const dispRes = await fetch(`${API_URL}/dispositivo/${dogId}`);
+                const disp = await parseJsonSafe(dispRes);
+                const recordsBody = document.getElementById('records-table-body');
+
+                if (!disp || !disp.id) {
+                    document.getElementById('val-temp').innerText = 'Sin GPS';
+                    document.getElementById('val-pulso').innerText = '--';
+                    document.getElementById('val-actividad').innerText = 'Sin collar';
+                    document.getElementById('val-bateria').innerText = '--';
+                    document.getElementById('coords-display').innerText = 'Lat: 0.0000 | Lon: 0.0000';
+                    recordsBody.innerHTML = '<tr><td colspan="4" class="text-center">Perro sin collar vinculado</td></tr>';
+                    loadAlerts(dogId);
+                    return;
+                }
+
+                const medRes = await fetch(`${API_URL}/historial-mediciones/${disp.id}`);
+                const mediciones = await parseJsonSafe(medRes);
+                recordsBody.innerHTML = '';
+
+                if (Array.isArray(mediciones) && mediciones.length > 0) {
+                    const ultima = mediciones[0];
+                    document.getElementById('val-temp').innerText = ultima.temperatura !== null ? `${ultima.temperatura} °C` : '--';
+                    document.getElementById('val-pulso').innerText = ultima.pulso !== null ? `${ultima.pulso} BPM` : '--';
+                    document.getElementById('val-actividad').innerText = ultima.actividad || 'Normal';
+                    document.getElementById('val-bateria').innerText = `${disp.bateria ?? 100}%`;
+
+                    mediciones.forEach(reg => {
+                        const tr = document.createElement('tr');
+                        const fecha = reg.fecha_hora ? new Date(reg.fecha_hora).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '-';
+                        tr.innerHTML = `
+                            <td>${fecha}</td>
+                            <td>${reg.temperatura ?? '--'} °C</td>
+                            <td>${reg.pulso ?? '--'} BPM</td>
+                            <td>${reg.actividad || 'Normal'}</td>
+                        `;
+                        recordsBody.appendChild(tr);
+                    });
+                } else {
+                    document.getElementById('val-temp').innerText = '--';
+                    document.getElementById('val-pulso').innerText = '--';
+                    document.getElementById('val-actividad').innerText = 'Sin datos';
+                    document.getElementById('val-bateria').innerText = `${disp.bateria ?? 100}%`;
+                    recordsBody.innerHTML = '<tr><td colspan="4" class="text-center">Sin mediciones registradas aún</td></tr>';
+                }
+
+                const ubRes = await fetch(`${API_URL}/ubicacion/${disp.id}`);
+                const ub = await parseJsonSafe(ubRes);
+
+                if (ub && ub.latitud !== undefined && ub.longitud !== undefined && ub.latitud !== null && ub.longitud !== null) {
+                    const lat = parseFloat(ub.latitud);
+                    const lon = parseFloat(ub.longitud);
+                    if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+                        document.getElementById('coords-display').innerText = `Lat: ${lat.toFixed(4)} | Lon: ${lon.toFixed(4)}`;
+                        updateGoogleMarker(lat, lon, dogName);
+                    }
+                }
+
+                loadAlerts(dogId);
+            } catch (err) {
+                console.error('Error actualizando telemetría:', err);
+            }
+        }
+
+        async function loadAlerts(dogId) {
+            try {
+                const res = await fetch(`${API_URL}/alertas/${dogId}`);
+                const alertas = await parseJsonSafe(res);
+                const container = document.getElementById('alerts-list');
+                container.innerHTML = '';
+
+                if (!Array.isArray(alertas) || alertas.length === 0) {
+                    container.innerHTML = '<p class="muted-text">✅ No hay alertas activas para esta mascota.</p>';
+                    return;
+                }
+
+                alertas.forEach(a => {
+                    const div = document.createElement('div');
+                    div.style.padding = '8px';
+                    div.style.marginBottom = '8px';
+                    div.style.background = 'rgba(239, 68, 68, 0.15)';
+                    div.style.borderLeft = '3px solid #ef4444';
+                    div.style.borderRadius = '6px';
+                    div.innerHTML = `<strong>⚠️ ${a.tipo}:</strong> ${a.descripcion}`;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error('Error en loadAlerts:', err);
+            }
+        }
+
+        function openAddDogModal() {
+            document.getElementById('form-add-dog').reset();
+            document.getElementById('dog-modal').classList.remove('hidden');
+        }
+
+        function closeAddDogModal() {
+            document.getElementById('dog-modal').classList.add('hidden');
+        }
+
+        async function handleCreateDog(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('dog-nombre').value.trim();
+            const raza = document.getElementById('dog-raza').value.trim() || 'Mestizo';
+            const edadRaw = document.getElementById('dog-edad').value;
+            const pesoRaw = document.getElementById('dog-peso').value;
+            const codigo_dispositivo = document.getElementById('dog-codigo').value.trim();
+
+            if (!nombre) return;
+
+            const edad = edadRaw !== '' ? parseInt(edadRaw, 10) : null;
+            const peso = pesoRaw !== '' ? parseFloat(pesoRaw) : null;
+
+            try {
+                const res = await fetch(`${API_URL}/perros`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario_id: currentUser.id,
+                        nombre,
+                        raza,
+                        edad,
+                        peso,
+                        codigo_dispositivo
+                    })
+                });
+                const data = await parseJsonSafe(res);
+
+                if (res.ok && data.success) {
+                    closeAddDogModal();
+                    selectedDogId = data.perro.id;
+                    selectedDogName = data.perro.nombre;
+                    loadDogs();
+                } else {
+                    alert(data.message || 'No se pudo registrar la mascota');
+                }
+            } catch (err) {
+                console.error('Error en handleCreateDog:', err);
+                alert('Error al conectar con el servidor');
+            }
+        }
+    </script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyClin4psaNVlZ--Set35wAAKq7cnykDQcA&callback=initMap"></script>
 </body>
 </html>
