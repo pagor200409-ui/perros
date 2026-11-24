@@ -566,7 +566,13 @@
     <script>
         const API_URL = '/api';
 
-        let currentUser = JSON.parse(localStorage.getItem('pawtrack_user')) || null;
+        let currentUser = null;
+        try {
+            currentUser = JSON.parse(localStorage.getItem('pawtrack_user')) || null;
+        } catch {
+            currentUser = null;
+        }
+
         let selectedDogId = null;
         let selectedDogName = 'Mascota';
         let map = null;
@@ -579,7 +585,7 @@
         let trackingInterval = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            if (currentUser) {
+            if (currentUser && currentUser.id) {
                 showDashboard();
             } else {
                 initMap();
@@ -615,12 +621,12 @@
                 });
                 const data = await parseJsonSafe(res);
 
-                if (res.ok && data.success) {
+                if (res.ok && data.success && data.usuario) {
                     currentUser = data.usuario;
                     localStorage.setItem('pawtrack_user', JSON.stringify(currentUser));
                     showDashboard();
                 } else {
-                    alert(data.message || 'Credenciales incorrectas');
+                    alert(data.message || `Error HTTP ${res.status}`);
                 }
             } catch (err) {
                 console.error('Error en handleLogin:', err);
@@ -647,7 +653,7 @@
                     document.getElementById('login-correo').value = correo;
                     switchTab('login');
                 } else {
-                    alert(data.message || 'No se pudo completar el registro');
+                    alert(data.message || `Error HTTP ${res.status}`);
                 }
             } catch (err) {
                 console.error('Error en handleRegister:', err);
@@ -658,7 +664,7 @@
         function showDashboard() {
             document.getElementById('auth-container').classList.add('hidden');
             document.getElementById('dashboard-container').classList.remove('hidden');
-            document.getElementById('user-display-name').innerText = `👤 ${currentUser.nombre}`;
+            document.getElementById('user-display-name').innerText = `👤 ${currentUser.nombre || 'Usuario'}`;
             initMap();
             loadDogs();
         }
@@ -669,7 +675,9 @@
                 trackingInterval = null;
             }
             localStorage.removeItem('pawtrack_user');
-            window.location.reload();
+            currentUser = null;
+            document.getElementById('dashboard-container').classList.add('hidden');
+            document.getElementById('auth-container').classList.remove('hidden');
         }
 
         function initLeafletFallback(mapElement, centroInicial) {
