@@ -20,6 +20,18 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+function getRouteParts(request, params) {
+  if (Array.isArray(params?.path) && params.path.length > 0) {
+    return params.path.map(String).filter(Boolean);
+  }
+  if (typeof params?.path === 'string' && params.path.trim() !== '') {
+    return params.path.split('/').filter(Boolean);
+  }
+  const url = new URL(request.url);
+  const clean = url.pathname.replace(/^\/api\/?/, '');
+  return clean.split('/').filter(Boolean);
+}
+
 export async function onRequest(context) {
   const { request, env, params } = context;
 
@@ -34,12 +46,9 @@ export async function onRequest(context) {
     });
   }
 
-  const rawPath = params?.path;
-  const parts = Array.isArray(rawPath)
-    ? rawPath
-    : String(rawPath || '').split('/').filter(Boolean);
-
+  const parts = getRouteParts(request, params);
   let pool;
+
   try {
     // POST /api/registro
     if (parts[0] === 'registro' && request.method === 'POST') {
@@ -301,3 +310,7 @@ export async function onRequest(context) {
     }
   }
 }
+
+export default {
+  fetch: onRequest
+};
